@@ -4,6 +4,7 @@ use std::slice;
 use nom::IResult;
 use expression::Expression;
 use production::Production;
+use earley::StateSet;
 use term::Term;
 use parsers;
 use error::Error;
@@ -195,6 +196,51 @@ impl Grammar {
             .collect::<Vec<usize>>();
         let mut rng: StdRng = SeedableRng::from_seed(&seed[..]);
         self.generate_seeded(&mut rng)
+    }
+
+    fn earley_init(&self, input_len: usize) -> Vec<StateSet>{
+        let mut sets: Vec<StateSet> = vec![];
+        for _ in 0..input_len {
+            sets.push(StateSet::new());
+        }
+
+        sets
+    }    
+
+    fn set_state(&self, s: Vec<StateSet>) -> Vec<StateSet> {
+        
+        let mut sets = s.clone();
+
+        match self.productions.split_first() {
+            Some((first, rest)) => { 
+                match sets.first_mut() {
+                    Some(s) => {
+                        s.production = first.clone();
+                        s.dot = first.lhs.clone();
+                        s.origin = 0;
+                    },
+                    None => panic!("TODO: Report bad StateSet in early parse!"),
+                }
+            },
+            None => panic!("TODO: Report bad grammar in earley parse!"),
+        }
+
+        sets
+    }
+
+    pub fn earley_parse(&mut self, words: &[u8]) {
+        let mut input_len = words.len();
+        let mut sets = self.set_state(self.earley_init(input_len));
+
+        for i in 0..input_len {
+            for k in sets.iter_mut() {
+
+                if !finished(k) {
+                    if
+
+                }
+            }
+        }
     }
 }
 

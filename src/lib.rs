@@ -173,6 +173,7 @@ mod term;
 mod expression;
 mod production;
 mod grammar;
+mod earley;
 pub use term::Term;
 pub use expression::Expression;
 pub use production::Production;
