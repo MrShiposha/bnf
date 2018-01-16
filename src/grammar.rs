@@ -4,7 +4,7 @@ use std::slice;
 use nom::IResult;
 use expression::Expression;
 use production::Production;
-use earley::{State, StateSet};
+use earley::{State, States, StateSet};
 use term::Term;
 use parsers;
 use error::Error;
@@ -43,7 +43,10 @@ impl Grammar {
     }
 
     /// Remove `Production` from the `Grammar`
-    pub fn remove_production(&mut self, prod: &Production) -> Option<Production> {
+    pub fn remove_production(
+        &mut self, prod: &Production) -> 
+        Option<Production> 
+    {
         if let Some(pos) = self.productions.iter().position(|x| *x == *prod) {
             Some(self.productions.remove(pos))
         } else {
@@ -61,14 +64,20 @@ impl Grammar {
         IterMut { iterator: self.productions.iter_mut() }
     }
 
-    fn eval_terminal(&self, term: &Term, rng: &mut StdRng) -> Result<String, Error> {
+    fn eval_terminal(
+        &self, term: &Term, rng: &mut StdRng) -> 
+        Result<String, Error> 
+    {
         match *term {
             Term::Nonterminal(ref nt) => self.traverse(&nt, rng),
             Term::Terminal(ref t) => Ok(t.clone()),
         }
     }
 
-    fn traverse(&self, ident: &String, rng: &mut StdRng) -> Result<String, Error> {
+    fn traverse(
+        &self, ident: &String, rng: &mut StdRng) -> 
+        Result<String, Error> 
+    {
         let stack_red_zone: usize = 32 * 1024; // 32KB
         // heavy recursion happening, we've hit out tolerable threshold
         if stacker::remaining_stack() < stack_red_zone {
@@ -149,7 +158,8 @@ impl Grammar {
                     Term::Nonterminal(ref nt) => start_rule = nt.clone(),
                     Term::Terminal(_) => {
                         return Err(Error::GenerateError(format!(
-                            "Termainal type cannot define a production in '{}'!",
+                            "Termainal type cannot define a production in \
+                            '{}'!",
                             term
                         )));
                     }
@@ -198,52 +208,83 @@ impl Grammar {
         self.generate_seeded(&mut rng)
     }
 
-    fn earley_init(&self, _input_len: usize) -> Vec<StateSet>{
-        let _ = vec![StateSet::new()];
-        unimplemented!()
+    fn earley_init(&self, input_len: usize) -> Vec<StateSet>{
+        return vec![StateSet::new(); input_len];
     }    
 
-    fn earley_finished(&self, _state: &State) -> bool {
-        unimplemented!()
+    fn earley_finished(
+        &self, state: &State, input_len: usize) -> 
+        bool 
+    {
+        return state.position.dot == input_len
     }
 
-    fn earley_predictor(&self, _state: &State, _pos: usize) {
-        unimplemented!()
+    fn earley_predictor(
+        &self, _state: &State, _pos: usize) -> 
+        Result<String, Error> 
+    {
+        return Ok(String::from("TODO: Predictor Success"))
     }
 
-    fn earley_scanner(&self, _state: &State, _pos: usize, _words: &[u8]) {
-        unimplemented!()
+    fn earley_scanner(
+        &self, _state: &State, _pos: usize, _words: &[u8]) -> 
+        Result<String, Error> 
+    {
+        return Ok(String::from("TODO: Scanner Success"))
     }
 
-    fn earley_completer(&self, _state: &State, _pos: usize) {
-        unimplemented!()
+    fn earley_completer(
+        &self, _state: &State, _pos: usize) -> 
+        Result<String, Error> 
+    {
+        
+        return Ok(String::from("TODO: Completer Success"))
     }
 
-    pub fn earley_parse(&self, words: &[u8]) {
-        let state_set = self.earley_init(words.len());
-        for k in 0..words.len() {
+    pub fn earley_parse(&self, words: &[u8]) -> Result<String, Error> {
+        let input_len = words.len();
+        let state_set = self.earley_init(input_len);
+        for k in 0..state_set.len() {
+            let set;
             match state_set.iter().nth(k) {
                 Some(s) => {
-                    for state in &s.state {
-                        if self.earley_finished(state) {
-                            self.earley_completer(state, k);
-                        } else {                        
-                            match *state {
-                                State::term(ref t) =>
-                                {
-                                    match *t {
-                                        Term::Terminal(_) => self.earley_scanner(state, k, words),
-                                        Term::Nonterminal(_) => self.earley_predictor(state, k),
-                                    }
-                                } 
-                                _ => self.earley_predictor(state, k),
+                    set = s;
+                },
+                None => {
+                    return 
+                    Err(
+                        Error::ParseError(String::from(
+                            "Failed to get element '{}' from input")));
+                },
+            }
+        
+            for state in &set.state {
+                if self.earley_finished(state, input_len) {
+                    return self.earley_completer(state, k);
+                } 
+                
+                match state.kind {
+                    States::TermNode(ref t) =>
+                    {
+                        match *t {
+                            Term::Terminal(_) => {
+                                let _ = self.earley_scanner(state, k, words);
+                            },
+                            Term::Nonterminal(_) => {
+                                let _ = self.earley_predictor(state, k);
                             }
                         }
-                    }
-                },
-                None => {},
+                    } 
+                    _ => { 
+                        let _ = self.earley_predictor(state, k);
+                    },
+                }
             }
+        
         }
+
+
+        return Ok(String::from("Completed!"))
     }
 }
 
