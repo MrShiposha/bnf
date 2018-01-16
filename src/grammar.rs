@@ -4,7 +4,7 @@ use std::slice;
 use nom::IResult;
 use expression::Expression;
 use production::Production;
-use earley::StateSet;
+use earley::{State, StateSet};
 use term::Term;
 use parsers;
 use error::Error;
@@ -203,19 +203,19 @@ impl Grammar {
         unimplemented!()
     }    
 
-    fn earley_finished(&self, _state: &Expression) -> bool {
+    fn earley_finished(&self, _state: &State) -> bool {
         unimplemented!()
     }
 
-    fn earley_predictor(&self, _state: &Expression, _pos: usize) {
+    fn earley_predictor(&self, _state: &State, _pos: usize) {
         unimplemented!()
     }
 
-    fn earley_scanner(&self, _state: &Expression, _pos: usize, _words: &[u8]) {
+    fn earley_scanner(&self, _state: &State, _pos: usize, _words: &[u8]) {
         unimplemented!()
     }
 
-    fn earley_completer(&self, _state: &Expression, _pos: usize) {
+    fn earley_completer(&self, _state: &State, _pos: usize) {
         unimplemented!()
     }
 
@@ -224,14 +224,19 @@ impl Grammar {
         for k in 0..words.len() {
             match state_set.iter().nth(k) {
                 Some(s) => {
-                    for state in s.production.rhs_iter() {
+                    for state in &s.state {
                         if self.earley_finished(state) {
                             self.earley_completer(state, k);
-                        } else {
-                            if true { // TODO Terminal case
-                                self.earley_scanner(state, k, words);
-                            } else { // Nonterminal
-                                self.earley_predictor(state, k);
+                        } else {                        
+                            match *state {
+                                State::term(ref t) =>
+                                {
+                                    match *t {
+                                        Term::Terminal(_) => self.earley_scanner(state, k, words),
+                                        Term::Nonterminal(_) => self.earley_predictor(state, k),
+                                    }
+                                } 
+                                _ => self.earley_predictor(state, k),
                             }
                         }
                     }
