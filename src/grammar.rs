@@ -4,7 +4,7 @@ use std::slice;
 use nom::IResult;
 use expression::Expression;
 use production::Production;
-use earley::{State, States, StateSet};
+use earley::{Position, State, States, StateSet};
 use term::Term;
 use parsers;
 use error::Error;
@@ -208,8 +208,23 @@ impl Grammar {
         self.generate_seeded(&mut rng)
     }
 
-    fn earley_init(&self, input_len: usize) -> Vec<StateSet>{
-        return vec![StateSet::new(); input_len];
+    fn earley_init(&self, input_len: usize) -> Result<Vec<StateSet>, Error>{
+        let start_state: State;
+        match self.productions.first() {
+            Some(p) => {
+                start_state = State {
+                    kind: States::ProductionNode(p.clone()),
+                    position: Position {dot: 0, origin: 0},
+                };
+            },
+            None => {
+                return Err(
+                    Error::ParseError(String::from(
+                        "No grammar to parse.")));                
+            }
+        }
+
+        Ok(vec![StateSet{ state: vec![start_state] }])
     }    
 
     fn earley_finished(
@@ -243,8 +258,13 @@ impl Grammar {
 
     pub fn earley_parse(&self, words: &[u8]) -> Result<String, Error> {
         let input_len = words.len();
-        let state_set = self.earley_init(input_len);
-        for k in 0..state_set.len() {
+        let state_set;
+        match self.earley_init(input_len) {
+            Ok(s) => state_set = s,
+            Err(e) => return Err(e),
+        }
+
+        for k in 0..input_len {
             let set;
             match state_set.iter().nth(k) {
                 Some(s) => {
