@@ -1,3 +1,43 @@
+extern crate bnf;
+
+use bnf::grammar::Grammar;
+use bnf::production::Production;
+use bnf::expression::Expression;
+use bnf::term::Term;
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum States {
+    GrammarNode(Grammar),
+    ProductionNode(Production),
+    ExpressionNode(Expression),
+    TermNode(Term),
+    
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Position {
+    pub dot: usize,
+    pub origin: usize,    
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct State {
+    pub kind: States,
+    pub position: Position,    
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StateSet {
+    pub state: Vec<State>,
+}
+
+impl StateSet {
+    pub fn new() -> StateSet {
+        StateSet {
+            state: vec![],
+        }
+    }
+}
 
 fn earley_init(input_len: usize) -> Result<Vec<StateSet>, Error>{
     let start_state: State;
