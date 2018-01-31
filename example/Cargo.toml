@@ -3,4 +3,5 @@ name = "example"
 version = "0.1.0"
 authors = ["Shea Newton <sheanewt@gmail.com>"]
 
-[dependencies]
+[dependencies.bnf]
+path = ".."
