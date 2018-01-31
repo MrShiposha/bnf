@@ -141,21 +141,56 @@ use bnf::Term;
 //     return Ok(String::from("Completed!"))
 // }
 
+fn find_rule(grammar: Grammar, term: Term) -> Vec<Production> {
+    let mut matches: Vec<Production> = vec![];
+    for prod in grammar.productions_iter() {
+        if prod.lhs == term {
+            matches.push(prod.clone());
+        }
+    }
+
+    matches
+}
+
+fn terms_collect(production: Production) -> Vec<Term> {
+    let mut ret: Vec<Term> = vec![];
+
+    for expr in production.rhs_iter() {
+        ret.extend(expr.terms_iter().cloned());
+    }
+
+    ret
+}
+
 fn main() {
     let input =
-        "<dna> ::= <base> | <base> <dna>
-        <base> ::= \"A\" | \"C\" | \"G\" | \"T\"";
+        "
+        <Rule1> ::= <Rule2> | <Rule2> <Rule1>
+        <Rule2> ::= \"ABC\" | \"AC\" | \"AG\" | \"T\"
+        ";
     let grammar = Grammar::from_str(input).unwrap();
 
-    for prod in grammar.productions_iter() {
-        println!("{}", prod.lhs);
-        print!("\t");
-        for expr in prod.rhs_iter() {
-            for term in expr.terms_iter() {
-                print!(" {} ", term);
-            }
-        }
-        println!("\n");
+    let term = Term::Nonterminal(String::from("Rule2"));
+    let matches = find_rule(grammar, term);
+
+    let input = String::from("ABCACT");
+
+    let mut pattern: String = String::new();
+    for(_, c) in input.chars().enumerate() {
+        pattern.push(c);
     }
+
+    println!("{:?}", matches);
+
+    // for prod in grammar.productions_iter() {
+    //     println!("{}", prod.lhs);
+    //     print!("\t");
+    //     for expr in prod.rhs_iter() {
+    //         for term in expr.terms_iter() {
+    //             print!(" {} ", term);
+    //         }
+    //     }
+    //     println!("\n");
+    // }
 
 }
