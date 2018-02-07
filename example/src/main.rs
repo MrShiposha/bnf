@@ -141,7 +141,7 @@ use bnf::Term;
 //     return Ok(String::from("Completed!"))
 // }
 
-fn find_rule(grammar: Grammar, term: Term) -> Vec<Production> {
+fn find_rule(grammar: &Grammar, term: Term) -> Vec<Production> {
     let mut matches: Vec<Production> = vec![];
     for prod in grammar.productions_iter() {
         if prod.lhs == term {
@@ -152,45 +152,49 @@ fn find_rule(grammar: Grammar, term: Term) -> Vec<Production> {
     matches
 }
 
-fn terms_collect(production: Production) -> Vec<Term> {
-    let mut ret: Vec<Term> = vec![];
-
-    for expr in production.rhs_iter() {
-        ret.extend(expr.terms_iter().cloned());
+fn scan_terminals(grammar: &Grammar, terminal: Term, matches: &mut Vec<Term>) {
+    for prod in grammar.productions_iter() {
+        for expr in prod.rhs_iter() {
+            for term in expr.terms_iter() {
+                if let Term::Terminal(_) = *term {
+                    if *term == terminal {
+                        if let None = matches.iter().find(|&&ref x| x == &prod.lhs) {
+                            matches.push(prod.lhs.clone());
+                        }
+                        println!("matched {} with rule {}", term, prod.lhs);
+                    }
+                }
+            }
+        }
     }
-
-    ret
 }
 
 fn main() {
     let input =
-        "
+        r#"
         <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-        <Rule2> ::= \"ABC\" | \"AC\" | \"AG\" | \"T\"
-        ";
+        <Rule2> ::= "ABC" | "AB" | "BC" | "AC" | "AG" | "T"
+        <Rule3> ::= "AB" | "BC" | "AC" | "AG" | "T"
+        <Rule4> ::= "BC" | "AC"
+        "#;
+
     let grammar = Grammar::from_str(input).unwrap();
 
     let term = Term::Nonterminal(String::from("Rule2"));
-    let matches = find_rule(grammar, term);
+    let mut matches: Vec<Term> = vec![];
 
     let input = String::from("ABCACT");
 
     let mut pattern: String = String::new();
-    for(_, c) in input.chars().enumerate() {
-        pattern.push(c);
+    for i in 0..input.len() {
+        for(_, c) in input[i..].chars().enumerate() {
+            pattern.push(c);
+            let new_term = Term::Terminal(pattern.clone());
+            scan_terminals(&grammar, new_term, &mut matches);
+        }
+        pattern.clear();
     }
 
-    println!("{:?}", matches);
-
-    // for prod in grammar.productions_iter() {
-    //     println!("{}", prod.lhs);
-    //     print!("\t");
-    //     for expr in prod.rhs_iter() {
-    //         for term in expr.terms_iter() {
-    //             print!(" {} ", term);
-    //         }
-    //     }
-    //     println!("\n");
-    // }
-
+    // matches.sort();
+    println!("matches: {:?}", matches);
 }
