@@ -30,8 +30,10 @@ fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Expression
     let mut container: HashSet<(Term, Expression)> = HashSet::new();
     for expr in &candidates {
         for t in expr.1.terms_iter() {
-            if t != term {
-                container = earley_predictor(&grammar, t).union(&container).cloned().collect();
+            if let Term::Nonterminal(_) = *t {
+                if t != term {
+                    container = earley_predictor(&grammar, t).union(&container).cloned().collect();
+                }
             }
         }
     }
@@ -61,8 +63,8 @@ fn main() {
     let input =
     r#"
     <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-    <Rule2> ::= "ABC" | "AB" | "BC" | "AC" | "AG" | "T" | <Rule3> | <Rule4>
-    <Rule3> ::= "AB" | "BC" | "AC" | "AG" | "T" | <Rule4>
+    <Rule2> ::= "ABC" | "AB" | "BC" | "AC" <Rule3> | <Rule4>
+    <Rule3> ::= "AB" | "BC" | "AG" | "T" | <Rule4>
     <Rule4> ::= "BC" | "AC"
     <Rule5> ::= "QR" | "ST"
     "#;
