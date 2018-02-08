@@ -5,7 +5,7 @@ use parsers;
 use error::Error;
 
 /// A Term can represent a Terminal or Nonterminal node
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Term {
     Terminal(String),
     Nonterminal(String),

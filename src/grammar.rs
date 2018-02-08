@@ -11,7 +11,7 @@ use rand::{Rng, SeedableRng, StdRng, thread_rng};
 use stacker;
 
 /// A Grammar is comprised of any number of Productions
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Grammar {
     productions: Vec<Production>,
 }

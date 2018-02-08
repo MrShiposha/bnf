@@ -8,7 +8,7 @@ use parsers;
 use error::Error;
 
 /// A Production is comprised of any number of Expressions
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Production {
     pub lhs: Term,
     rhs: Vec<Expression>,

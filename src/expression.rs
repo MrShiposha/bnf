@@ -7,7 +7,7 @@ use parsers;
 use error::Error;
 
 /// An Expression is comprised of any number of Terms
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Expression {
     terms: Vec<Term>,
 }
