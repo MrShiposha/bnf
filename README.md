@@ -12,32 +12,32 @@ inspired by the JavaScript libraries [prettybnf](https://github.com/dhconnelly/p
 
 ## What does a parsable BNF grammar look like?
 
-The following grammar from the 
+The following grammar from the
 [Wikipedia page on Backus-Naur form](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form#Example)
 exemplifies a compatible grammar. (*Note: parser allows for an optional ';'
 to indicate the end of a producion)
 
 ```text
-<postal-address> ::= <name-part> <street-address> <zip-part>
+<postal-address>  ::= <name-part> <street-address> <zip-part>
 
-        <name-part> ::= <personal-part> <last-name> <opt-suffix-part> <EOL>
-                    | <personal-part> <name-part>
+<name-part>       ::= <personal-part> <last-name> <opt-suffix-part> <EOL>
+                  | <personal-part> <name-part>
 
-    <personal-part> ::= <initial> "." | <first-name>
+<personal-part>   ::= <initial> "." | <first-name>
 
-    <street-address> ::= <house-num> <street-name> <opt-apt-num> <EOL>
+ <street-address> ::= <house-num> <street-name> <opt-apt-num> <EOL>
 
-        <zip-part> ::= <town-name> "," <state-code> <ZIP-code> <EOL>
+<zip-part>        ::= <town-name> "," <state-code> <ZIP-code> <EOL>
 
 <opt-suffix-part> ::= "Sr." | "Jr." | <roman-numeral> | ""
-    <opt-apt-num> ::= <apt-num> | ""
+<opt-apt-num>     ::= <apt-num> | ""
 ```
 
 ## Output
-Take the following grammar for DNA sequences to be input to this library's 
+Take the following grammar for DNA sequences to be input to this library's
 `parse` function.
 ```text
-<dna> ::= <base> | <base> <dna>
+<dna>  ::= <base> | <base> <dna>
 <base> ::= "A" | "C" | "G" | "T"
 ```
 
@@ -111,7 +111,7 @@ Grammar {
 
 Once the `Grammar` object is populated, to generate a random sentence from it
 call the object's generate function. `grammar.generate()`. For the above grammar
-you could expect something like `TGGC` or `AG`. 
+you could expect something like `TGGC` or `AG`.
 
 If the generate function can't find a production for a nonterminal it tries
 to evaluate it will print the identifer as a nonterminal, i.e. `<identifier>`.
@@ -127,19 +127,19 @@ use bnf::Grammar;
 
 fn main() {
     let input =
-        "<postal-address> ::= <name-part> <street-address> <zip-part>
+        r#"<postal-address> ::= <name-part> <street-address> <zip-part>
 
               <name-part> ::= <personal-part> <last-name> <opt-suffix-part> <EOL>
                             | <personal-part> <name-part>
 
-          <personal-part> ::= <initial> \".\" | <first-name>
+          <personal-part> ::= <initial> "." | <first-name>
 
          <street-address> ::= <house-num> <street-name> <opt-apt-num> <EOL>
 
-               <zip-part> ::= <town-name> \",\" <state-code> <ZIP-code> <EOL>
+               <zip-part> ::= <town-name> "," <state-code> <ZIP-code> <EOL>
 
-        <opt-suffix-part> ::= \"Sr.\" | \"Jr.\" | <roman-numeral> | \"\"
-            <opt-apt-num> ::= <apt-num> | \"\";"
+        <opt-suffix-part> ::= "Sr." | "Jr." | <roman-numeral> | ""
+            <opt-apt-num> ::= <apt-num> | "";"#
 
     let grammar = Grammar::from_str(input);
     match grammar {
@@ -149,15 +149,15 @@ fn main() {
 }
 ```
 ## Generate Example
-    
+
 ```rust
 extern crate bnf;
 use bnf::Grammar;
 
 fn main() {
     let input =
-        "<dna> ::= <base> | <base> <dna>
-        <base> ::= \"A\" | \"C\" | \"G\" | \"T\"";
+        r#"<dna> ::= <base> | <base> <dna>
+        <base> ::= "A" | "C" | "G" | "T""#;
     let grammar = Grammar::from_str(input).unwrap();
     let sentence = grammar.generate();
     match sentence {

@@ -5,17 +5,16 @@ use bnf::Grammar;
 use bnf::Expression;
 use bnf::Term;
 
-
 use std::collections::HashSet;
 
 // let input =
-// r#"
+// "
 // <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-// <Rule2> ::= "ABC" | "AB" | "BC" | "AC" <Rule3> | <Rule4>
-// <Rule3> ::= "AB" | "BC" | "AG" | "T" | <Rule4>
-// <Rule4> ::= "BC" | "AC"
-// <Rule5> ::= "QR" | "ST"
-// "#;
+// <Rule2> ::= \"ABC\" | \"AB\" | \"BC\" | \"AC\" <Rule3> | <Rule4>
+// <Rule3> ::= \"AB\" | \"BC\" | \"AG\" | \"T\" | <Rule4>
+// <Rule4> ::= \"BC\" | \"AC\"
+// <Rule5> ::= \"QR\" | \"ST\"
+// ";
 
 fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Expression)> {
     let mut candidates: HashSet<(Term, Expression)> = HashSet::new();
@@ -49,7 +48,6 @@ fn earley_scanner(grammar: &Grammar, term: &Term) -> HashSet<Term> {
                 if let Term::Terminal(_) = *t {
                     if t == term {
                         matches.insert(prod.lhs.clone());
-                        // println!("matched {} with rule {}", term, prod.lhs);
                     }
                 }
             }
@@ -61,13 +59,13 @@ fn earley_scanner(grammar: &Grammar, term: &Term) -> HashSet<Term> {
 
 fn main() {
     let input =
-    r#"
+    "
     <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-    <Rule2> ::= "ABC" | "AB" | "BC" | "AC" <Rule3> | <Rule4>
-    <Rule3> ::= "AB" | "BC" | "AG" | "T" | <Rule4>
-    <Rule4> ::= "BC" | "AC"
-    <Rule5> ::= "QR" | "ST"
-    "#;
+    <Rule2> ::= \"ABC\" | \"AB\" | \"BC\" | \"AC\" <Rule3> | <Rule4>
+    <Rule3> ::= \"AB\" | \"BC\" | \"AG\" | \"T\" | <Rule4>
+    <Rule4> ::= \"BC\" | \"AC\"
+    <Rule5> ::= \"QR\" | \"ST\"
+    ";
 
     let grammar = Grammar::from_str(input).unwrap();
 
@@ -84,8 +82,7 @@ fn main() {
         pattern.clear();
     }
 
-    // matches.sort();
-    println!("matches: {:?}", matches);
+    // println!("matches: {:?}", matches);
 
     let term = Term::Nonterminal(String::from("Rule1"));
     let candidates: HashSet<(Term, Expression)> = earley_predictor(&grammar, &term);

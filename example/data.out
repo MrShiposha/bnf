@@ -1,0 +1,177 @@
+matches: {Nonterminal("Rule3"), Nonterminal("Rule4"), Nonterminal("Rule2")}
+candidates: {
+    (
+        Nonterminal(
+            "Rule3"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "AB"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule2"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "BC"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule3"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "AG"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule2"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "AB"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule2"
+        ),
+        Expression {
+            terms: [
+                Nonterminal(
+                    "Rule4"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule4"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "BC"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule1"
+        ),
+        Expression {
+            terms: [
+                Nonterminal(
+                    "Rule2"
+                ),
+                Nonterminal(
+                    "Rule1"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule4"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "AC"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule1"
+        ),
+        Expression {
+            terms: [
+                Nonterminal(
+                    "Rule2"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule2"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "ABC"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule2"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "AC"
+                ),
+                Nonterminal(
+                    "Rule3"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule3"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "T"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule3"
+        ),
+        Expression {
+            terms: [
+                Nonterminal(
+                    "Rule4"
+                )
+            ]
+        }
+    ),
+    (
+        Nonterminal(
+            "Rule3"
+        ),
+        Expression {
+            terms: [
+                Terminal(
+                    "BC"
+                )
+            ]
+        }
+    )
+}
