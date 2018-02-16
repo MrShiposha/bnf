@@ -2,7 +2,6 @@ extern crate bnf;
 
 use bnf::Grammar;
 // use bnf::Production;
-use bnf::Expression;
 use bnf::Term;
 
 use std::collections::HashSet;
@@ -16,22 +15,26 @@ use std::collections::HashSet;
 // <Rule5> ::= \"QR\" | \"ST\"
 // ";
 
-fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Expression)> {
-    let mut candidates: HashSet<(Term, Expression)> = HashSet::new();
+fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Vec<Term>)> {
+    let mut candidates: HashSet<(Term, Vec<Term>)> = HashSet::new();
     for prod in grammar.productions_iter() {
         if prod.lhs == *term {
             for expr in prod.rhs_iter() {
-                candidates.insert((prod.lhs.clone(), expr.clone()));
+                candidates.insert((prod.lhs.clone(), expr.terms_iter()
+                                                         .map(|x| x.clone())
+                                                         .collect()));
             }
         }
     }
 
-    let mut container: HashSet<(Term, Expression)> = HashSet::new();
-    for expr in &candidates {
-        for t in expr.1.terms_iter() {
-            if let Term::Nonterminal(_) = *t {
-                if t != term {
-                    container = earley_predictor(&grammar, t).union(&container).cloned().collect();
+    let mut container: HashSet<(Term, Vec<Term>)> = HashSet::new();
+    for candidate in &candidates {
+        for c in &candidate.1 {
+            if let Term::Nonterminal(_) = *c {
+                if c != term {
+                    container = earley_predictor(&grammar, &c).union(&container)
+                                                              .cloned()
+                                                              .collect();
                 }
             }
         }
@@ -60,17 +63,16 @@ fn earley_scanner(grammar: &Grammar, term: &Term) -> HashSet<Term> {
 fn main() {
     let input =
     "
-    <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-    <Rule2> ::= \"ABC\" | \"AB\" | \"BC\" | \"AC\" <Rule3> | <Rule4>
-    <Rule3> ::= \"AB\" | \"BC\" | \"AG\" | \"T\" | <Rule4>
-    <Rule4> ::= \"BC\" | \"AC\"
-    <Rule5> ::= \"QR\" | \"ST\"
+    <P> ::= <S>
+    <S> ::= <S> \"+\" <M> | <M>
+    <M> ::= <M> \"*\" <T> | <T>
+    <T> ::= \"1\" | \"2\" | \"3\" | \"4\"
     ";
 
     let grammar = Grammar::from_str(input).unwrap();
 
     // scanner
-    let input = String::from("ABCACT");
+    let input = String::from("1234");
     let mut pattern: String = String::new();
     let mut matches: HashSet<Term> =  HashSet::new();
     for i in 0..input.len() {
@@ -82,10 +84,15 @@ fn main() {
         pattern.clear();
     }
 
-    // println!("matches: {:?}", matches);
+    // println!("matches: {:?}\n\n", matches);
 
-    let term = Term::Nonterminal(String::from("Rule1"));
-    let candidates: HashSet<(Term, Expression)> = earley_predictor(&grammar, &term);
+    let term = Term::Nonterminal(String::from("P"));
+    let candidates: HashSet<(Term, Vec<Term>)> = earley_predictor(&grammar, &term);
 
-    println!("candidates: {:#?}", candidates);
+    for candidate in candidates {
+        println!("{:?}", candidate);
+    }
+
+
+    // println!("candidates: {:#?}", candidates);
 }
