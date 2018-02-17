@@ -10,7 +10,7 @@ fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Vec<Term>)
         if prod.lhs == *term {
             for expr in prod.rhs_iter() {
                 candidates.insert((prod.lhs.clone(), expr.terms_iter()
-                                                         .map(|x| x.clone())
+                                                         .cloned()
                                                          .collect()));
             }
         }
