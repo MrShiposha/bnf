@@ -1,19 +1,8 @@
 extern crate bnf;
 
 use bnf::Grammar;
-// use bnf::Production;
 use bnf::Term;
-
 use std::collections::HashSet;
-
-// let input =
-// "
-// <Rule1> ::= <Rule2> | <Rule2> <Rule1>
-// <Rule2> ::= \"ABC\" | \"AB\" | \"BC\" | \"AC\" <Rule3> | <Rule4>
-// <Rule3> ::= \"AB\" | \"BC\" | \"AG\" | \"T\" | <Rule4>
-// <Rule4> ::= \"BC\" | \"AC\"
-// <Rule5> ::= \"QR\" | \"ST\"
-// ";
 
 fn earley_predictor(grammar: &Grammar, term: &Term) -> HashSet<(Term, Vec<Term>)> {
     let mut candidates: HashSet<(Term, Vec<Term>)> = HashSet::new();
@@ -92,7 +81,6 @@ fn main() {
     for candidate in candidates {
         println!("{:?}", candidate);
     }
-
 
     // println!("candidates: {:#?}", candidates);
 }
