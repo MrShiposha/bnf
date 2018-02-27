@@ -61,8 +61,13 @@ fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<EarleyP
         .collect()
 }
 
-fn earley_scanner(term: &Term, k: usize, words: &String, grammar: &Grammar) -> bool {
-    // let mut matches: PartsOfSpeech = PartsOfSpeech::new();
+fn earley_scanner(
+    term: &Term,
+    k: usize,
+    words: &String,
+    grammar: &Grammar,
+) -> HashSet<EarleyProduction> {
+    let mut matches: HashSet<EarleyProduction> = HashSet::new();
     let mut pattern: String = String::new();
     for (_, c) in words[k..].chars().enumerate() {
         pattern.push(c);
@@ -71,8 +76,11 @@ fn earley_scanner(term: &Term, k: usize, words: &String, grammar: &Grammar) -> b
                 for t in expr.terms_iter() {
                     if let Term::Terminal(_) = *t {
                         if t == term {
-                            return true;
-                            // matches.terms.insert(prod.lhs.clone());
+                            matches.insert(EarleyProduction {
+                                lhs: prod.lhs.clone(),
+                                terms: expr.terms_iter().cloned().collect::<Vec<_>>(),
+                                dot: 0,
+                            });
                         }
                     }
                 }
@@ -80,14 +88,13 @@ fn earley_scanner(term: &Term, k: usize, words: &String, grammar: &Grammar) -> b
         }
     }
 
-    return false;
-    // matches
+    matches
 }
 
-fn earley_completer(state: &State) -> HashSet<EarleyProduction> {
+fn earley_completer(productions: &Vec<EarleyProduction>) -> HashSet<EarleyProduction> {
     let mut updates: HashSet<EarleyProduction> = HashSet::new();
-    for production in &state.productions {
-        if !earley_finished(production) {
+    for production in productions {
+        if let Some(&Term::Nonterminal(_)) = earley_next_element(&production) {
             let mut update = production.clone();
             update.dot += 1;
             updates.insert(update);
@@ -117,18 +124,8 @@ fn earlt_init(grammar: &Grammar) -> Option<State> {
     return None;
 }
 
-fn earley_finished(production: &EarleyProduction) -> bool {
-    if production.dot == production.terms.len() {
-        return true;
-    }
-
-    return false;
-}
-
-fn earley_next_element(production: &mut EarleyProduction) -> Option<&Term> {
-    let ret = production.terms.iter().nth(production.dot);
-    production.dot += 1;
-    ret
+fn earley_next_element(production: &EarleyProduction) -> Option<&Term> {
+    production.terms.iter().nth(production.dot)
 }
 
 fn main() {
@@ -153,50 +150,55 @@ fn main() {
         return;
     }
 
-    // let result: Vec<State> = vec![];
-
     for k in 0..input.len() {
         if let Some(state) = states.clone().iter().nth(k) {
             let mut productions: Vec<EarleyProduction> =
                 state.productions.iter().cloned().collect::<Vec<_>>();
-
-            let mut collection: State = State::new();
-
+            let mut tracked: Vec<Vec<EarleyProduction>> = vec![vec![]; productions.len()];
             while let Some(mut production) = productions.pop() {
-                let mut clone = production.clone();
-                let ret = earley_next_element(&mut production);
-                if let Some(term) = ret {
-                    match *term {
-                        Term::Nonterminal(_) =>
-                        {
-                            collection.productions = earley_predictor(term, k, &grammar)
-                                        .union(&collection.productions)
+                if let Some(contents) = tracked.iter_mut().nth(k) {
+                    if contents.contains(&production) {
+                        continue;
+                    }
+
+                    contents.push(production.clone());
+
+                    if let Some(term) = earley_next_element(&production) {
+                        match *term {
+                            Term::Nonterminal(_) => {
+                                productions.extend(
+                                    earley_predictor(term, k, &grammar)
+                                        .iter()
                                         .cloned()
-                                        .collect::<HashSet<_>>();
-                        }
-                        Term::Terminal(_) => {
-                            if earley_scanner(&term, k, &input, &grammar) {
-                                if let Some(state) = states.iter_mut().nth(k + 1) {
-                                    clone.dot += 1;
-                                    state.productions.insert(clone);
+                                        .collect::<Vec<_>>(),
+                                );
+                            }
+                            Term::Terminal(_) => {
+                                if let Some(track) = tracked.iter_mut().nth(k + 1) {
+                                    let matches = earley_scanner(&term, k, &input, &grammar)
+                                        .iter()
+                                        .cloned()
+                                        .collect::<Vec<_>>();
+                                    track.extend(matches);
                                 }
                             }
                         }
-                    }
-                } else {
-                    collection.productions = earley_completer(state)
-                                .union(&collection.productions)
+                    } else {
+                        productions.extend(
+                            earley_completer(contents)
+                                .iter()
                                 .cloned()
-                                .collect::<HashSet<_>>();
+                                .collect::<Vec<_>>(),
+                        );
+                    }
                 }
             }
-
-            states.remove(k);
-            states.insert(k, collection)
         }
     }
 
     for state in states {
-        println!("{:#?}\n", state);
+        for production in state.productions {
+            println!("{:?}\n\n", production);
+        }
     }
 }
