@@ -10,26 +10,21 @@ struct State {
     productions: HashSet<EarleyProduction>,
 }
 
+impl State {
+    pub fn new() -> State {
+        State {
+            origin: 0,
+            productions: HashSet::new(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct EarleyProduction {
     lhs: Term,
     terms: Vec<Term>,
     dot: usize,
 }
-
-// #[derive(Clone, Debug, Eq, PartialEq)]
-// struct PartsOfSpeech {
-//     terms: HashSet<Term>,
-// }
-
-// impl PartsOfSpeech {
-//     /// Construct a new `PartsOfSpeech`
-//     pub fn new() -> PartsOfSpeech {
-//         PartsOfSpeech {
-//             terms: HashSet::new(),
-//         }
-//     }
-// }
 
 fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<EarleyProduction> {
     let mut productions_first: HashSet<EarleyProduction> = HashSet::new();
@@ -89,7 +84,7 @@ fn earley_scanner(term: &Term, k: usize, words: &String, grammar: &Grammar) -> b
     // matches
 }
 
-fn earley_completer(state: &State) -> Vec<EarleyProduction> {
+fn earley_completer(state: &State) -> HashSet<EarleyProduction> {
     let mut updates: HashSet<EarleyProduction> = HashSet::new();
     for production in &state.productions {
         if !earley_finished(production) {
@@ -99,7 +94,7 @@ fn earley_completer(state: &State) -> Vec<EarleyProduction> {
         }
     }
 
-    updates.iter().cloned().collect()
+    updates
 }
 
 fn earlt_init(grammar: &Grammar) -> Option<State> {
@@ -130,8 +125,10 @@ fn earley_finished(production: &EarleyProduction) -> bool {
     return false;
 }
 
-fn earley_next_element(production: &EarleyProduction) -> Option<&Term> {
-    return production.terms.iter().nth(production.dot);
+fn earley_next_element(production: &mut EarleyProduction) -> Option<&Term> {
+    let ret = production.terms.iter().nth(production.dot);
+    production.dot += 1;
+    ret
 }
 
 fn main() {
@@ -156,41 +153,50 @@ fn main() {
         return;
     }
 
+    // let result: Vec<State> = vec![];
+
     for k in 0..input.len() {
         if let Some(state) = states.clone().iter().nth(k) {
             let mut productions: Vec<EarleyProduction> =
                 state.productions.iter().cloned().collect::<Vec<_>>();
 
-            while let Some(production) = productions.pop() {
-                if !earley_finished(&production) {
-                    if let Some(term) = earley_next_element(&production) {
-                        match *term {
-                            Term::Nonterminal(_) => productions.extend(
-                                earley_predictor(term, k, &grammar)
-                                    .iter()
-                                    .cloned()
-                                    .collect::<Vec<_>>(),
-                            ),
-                            Term::Terminal(_) => {
-                                if earley_scanner(&term, k, &input, &grammar) {
-                                    if let Some(state) = states.iter_mut().nth(k + 1) {
-                                        let mut new_production = production.clone();
-                                        new_production.dot += 1;
-                                        state.productions.insert(new_production);
-                                    }
+            let mut collection: State = State::new();
+
+            while let Some(mut production) = productions.pop() {
+                let mut clone = production.clone();
+                let ret = earley_next_element(&mut production);
+                if let Some(term) = ret {
+                    match *term {
+                        Term::Nonterminal(_) =>
+                        {
+                            collection.productions = earley_predictor(term, k, &grammar)
+                                        .union(&collection.productions)
+                                        .cloned()
+                                        .collect::<HashSet<_>>();
+                        }
+                        Term::Terminal(_) => {
+                            if earley_scanner(&term, k, &input, &grammar) {
+                                if let Some(state) = states.iter_mut().nth(k + 1) {
+                                    clone.dot += 1;
+                                    state.productions.insert(clone);
                                 }
                             }
                         }
                     }
                 } else {
-                    // productions.extend(earley_completer(state));
-                }
-
-                let temp = productions.clone();
-                for t in temp {
-                    println!("{:?}", t);
+                    collection.productions = earley_completer(state)
+                                .union(&collection.productions)
+                                .cloned()
+                                .collect::<HashSet<_>>();
                 }
             }
+
+            states.remove(k);
+            states.insert(k, collection)
         }
+    }
+
+    for state in states {
+        println!("{:#?}\n", state);
     }
 }
