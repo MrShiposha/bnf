@@ -3,6 +3,7 @@ extern crate bnf;
 use bnf::Grammar;
 use bnf::Term;
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct EarleyProduction {
@@ -68,8 +69,6 @@ fn earley_scanner(
                                 let mut p = production.clone();
                                 p.dot += 1;
                                 matches.insert(p);
-                            } else {
-                                pattern = String::new();
                             }
                         }
                     }
@@ -81,7 +80,10 @@ fn earley_scanner(
     matches
 }
 
-fn earley_completer(productions: &Vec<EarleyProduction>, finished: &EarleyProduction) -> HashSet<EarleyProduction> {
+fn earley_completer(
+    productions: &HashSet<EarleyProduction>,
+    finished: &EarleyProduction,
+) -> HashSet<EarleyProduction> {
     let mut updates: HashSet<EarleyProduction> = HashSet::new();
     for production in productions {
         if let Some(term) = earley_next_element(&production) {
@@ -118,6 +120,10 @@ fn earley_next_element(production: &EarleyProduction) -> Option<&Term> {
     production.terms.iter().nth(production.dot)
 }
 
+fn hashset(data: &[EarleyProduction]) -> HashSet<EarleyProduction> {
+    HashSet::from_iter(data.iter().cloned())
+}
+
 fn main() {
     let input = "
     <P> ::= <S>
@@ -129,9 +135,9 @@ fn main() {
     let grammar = Grammar::from_str(input).unwrap();
 
     // scanner
-    let input = String::from("2 + 3 * 4");
+    let input = String::from("2+3*4");
 
-    let mut states: Vec<HashSet<EarleyProduction>> = vec![HashSet::new(); input.len()];
+    let mut states: Vec<HashSet<EarleyProduction>> = vec![HashSet::new(); input.len() + 1];
 
     if let Some(intial) = earlt_init(&grammar) {
         states[0] = intial;
@@ -153,41 +159,34 @@ fn main() {
             if let Some(term) = earley_next_element(&production) {
                 match *term {
                     Term::Nonterminal(_) => {
-                        productions.extend(
-                            earley_predictor(term, k, &grammar)
-                                .iter()
-                                .cloned()
-                                .collect::<Vec<_>>(),
-                        );
+                        let predicted = earley_predictor(term, k, &grammar);
+                        productions = hashset(&productions).union(&predicted).cloned().collect();
                     }
                     Term::Terminal(_) => {
-                            states[k+1] = states[k+1]
-                                                    .union(&earley_scanner(&term, k, &input, &grammar, &production))
-                                                    .cloned()
-                                                    .collect();
+                        let scanned = earley_scanner(&term, k, &input, &grammar, &production);
+                        states[k + 1] = scanned.union(&states[k + 1]).cloned().collect();
                     }
                 }
             } else {
-                productions.extend(
-                    earley_completer(&states[production.origin].iter().cloned().collect::<Vec<_>>(), &production)
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                );
+                let completed = earley_completer(&states[production.origin], &production);
+                productions = hashset(&productions).union(&completed).cloned().collect();
             }
         }
     }
 
     for (i, state) in states.iter().enumerate() {
         println!("\n---S({})\n", i);
-        for (j, production) in state.iter().enumerate() {
+        for (_, production) in state.iter().enumerate() {
             let finished: String;
             if let None = earley_next_element(&production) {
                 finished = String::from("(complete)");
             } else {
                 finished = String::from("");
             }
-            println!("{} | {} -> {:?} - dot:{} {}", j, production.lhs, production.terms, production.dot, finished);
+            println!(
+                "{} | {} -> {:?} - dot:{} {}",
+                production.origin, production.lhs, production.terms, production.dot, finished
+            );
         }
     }
 }
