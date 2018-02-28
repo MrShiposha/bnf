@@ -70,12 +70,16 @@ impl Expression {
 
     /// Get iterator of `Term`s within `Expression`
     pub fn terms_iter(&self) -> Iter {
-        Iter { iterator: self.terms.iter() }
+        Iter {
+            iterator: self.terms.iter(),
+        }
     }
 
     /// Get mutable iterator of `Term`s within `Expression`
     pub fn terms_iter_mut(&mut self) -> IterMut {
-        IterMut { iterator: self.terms.iter_mut() }
+        IterMut {
+            iterator: self.terms.iter_mut(),
+        }
     }
 }
 
@@ -239,9 +243,9 @@ mod tests {
 
         // the nonexistent term should not be found in the terms
         assert_eq!(
-            dna_expression.terms_iter().find(
-                |&term| *term == nonexistent,
-            ),
+            dna_expression
+                .terms_iter()
+                .find(|&term| *term == nonexistent,),
             None
         );
         // no term should have been removed
@@ -276,12 +280,10 @@ mod tests {
         let result = Expression::from_str("");
         assert!(result.is_err(), "{:?} should be err", result);
         match result {
-            Err(e) => {
-                match e {
-                    Error::ParseIncomplete(_) => (),
-                    e => panic!("should should be Error::ParseIncomplete: {:?}", e),
-                }
-            }
+            Err(e) => match e {
+                Error::ParseIncomplete(_) => (),
+                e => panic!("should should be Error::ParseIncomplete: {:?}", e),
+            },
             Ok(s) => panic!("should should be Error::ParseIncomplete: {}", s),
         }
     }
