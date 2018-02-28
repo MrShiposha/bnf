@@ -138,6 +138,7 @@ fn main() {
     let input = String::from("2+3*4");
 
     let mut states: Vec<HashSet<EarleyProduction>> = vec![HashSet::new(); input.len() + 1];
+    let mut productions: Vec<EarleyProduction> = vec![];
 
     if let Some(intial) = earlt_init(&grammar) {
         states[0] = intial;
@@ -145,16 +146,20 @@ fn main() {
         println!("Something in init went wrong!");
     }
 
-    for k in 0..input.len() {
-        let mut productions: Vec<EarleyProduction> = states[k].iter().cloned().collect::<Vec<_>>();
-        states[k].drain();
+    for k in 0..input.len() + 1 {
+        if let Some(state) = states.iter_mut().nth(k) {
+            productions = state.iter().cloned().collect::<Vec<_>>();
+            state.drain();
+        }
 
         while let Some(mut production) = productions.pop() {
-            if states[k].contains(&production) {
-                continue;
-            }
+            if let Some(state) = states.iter_mut().nth(k) {
+                if state.contains(&production) {
+                    continue;
+                }
 
-            states[k].insert(production.clone());
+                state.insert(production.clone());
+            }
 
             if let Some(term) = earley_next_element(&production) {
                 match *term {
@@ -163,13 +168,17 @@ fn main() {
                         productions = hashset(&productions).union(&predicted).cloned().collect();
                     }
                     Term::Terminal(_) => {
-                        let scanned = earley_scanner(&term, k, &input, &grammar, &production);
-                        states[k + 1] = scanned.union(&states[k + 1]).cloned().collect();
+                        if let Some(state) = states.iter_mut().nth(k + 1) {
+                            let scanned = earley_scanner(&term, k, &input, &grammar, &production);
+                            *state = scanned.union(&state).cloned().collect();
+                        }
                     }
                 }
             } else {
-                let completed = earley_completer(&states[production.origin], &production);
-                productions = hashset(&productions).union(&completed).cloned().collect();
+                if let Some(state) = states.iter().nth(production.origin) {
+                    let completed = earley_completer(&state, &production);
+                    productions = hashset(&productions).union(&completed).cloned().collect();
+                }
             }
         }
     }
