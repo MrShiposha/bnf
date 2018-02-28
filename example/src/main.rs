@@ -4,21 +4,6 @@ use bnf::Grammar;
 use bnf::Term;
 use std::collections::HashSet;
 
-// #[derive(Clone, Debug, Eq, PartialEq)]
-// struct State {
-//     origin: usize,
-//     productions: HashSet<EarleyProduction>,
-// }
-
-// impl State {
-//     pub fn new() -> State {
-//         State {
-//             origin: 0,
-//             productions: HashSet::new(),
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct EarleyProduction {
     origin: usize,
@@ -176,7 +161,10 @@ fn main() {
                         );
                     }
                     Term::Terminal(_) => {
-                        states[k+1].extend(earley_scanner(&term, k, &input, &grammar, &production));
+                            states[k+1] = states[k+1]
+                                                    .union(&earley_scanner(&term, k, &input, &grammar, &production))
+                                                    .cloned()
+                                                    .collect();
                     }
                 }
             } else {
@@ -194,12 +182,12 @@ fn main() {
         println!("\n---S({})\n", i);
         for (j, production) in state.iter().enumerate() {
             let finished: String;
-            if let Some(complete) = earley_next_element(&production) {
-                finished = String::from("");
-            } else {
+            if let None = earley_next_element(&production) {
                 finished = String::from("(complete)");
+            } else {
+                finished = String::from("");
             }
-            println!("{} | {} -> {:?} {}", j, production.lhs, production.terms, finished);
+            println!("{} | {} -> {:?} - dot:{} {}", j, production.lhs, production.terms, production.dot, finished);
         }
     }
 }
