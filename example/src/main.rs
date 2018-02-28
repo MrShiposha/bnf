@@ -190,11 +190,16 @@ fn main() {
         }
     }
 
-    for state in states {
-        for production in state {
-            if let None = earley_next_element(&production) {
-                println!("{:?}\n\n", production);
+    for (i, state) in states.iter().enumerate() {
+        println!("\n---S({})\n", i);
+        for (j, production) in state.iter().enumerate() {
+            let finished: String;
+            if let Some(complete) = earley_next_element(&production) {
+                finished = String::from("");
+            } else {
+                finished = String::from("(complete)");
             }
+            println!("{} | {} -> {:?} {}", j, production.lhs, production.terms, finished);
         }
     }
 }
