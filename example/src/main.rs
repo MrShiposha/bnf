@@ -7,6 +7,7 @@ use std::iter::FromIterator;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Derivation {
+    pattern: Option<String>,
     left: Option<Box<Derivation>>,
     right: Option<Box<State>>,
 }
@@ -58,10 +59,6 @@ fn earley_scanner(
                             if pattern == *s {
                                 let mut update = production.clone();
                                 update.dot += 1;
-                                update.children = Some(Box::new(Derivation {
-                                    left: production.children.clone(),
-                                    right: Some(Box::new(production.clone())),
-                                }));
                                 matches.insert(update);
                             }
                         }
@@ -81,10 +78,6 @@ fn earley_completer(productions: &HashSet<State>, finished: &State) -> HashSet<S
             if finished.lhs == *term {
                 let mut update = production.clone();
                 update.dot += 1;
-                update.children = Some(Box::new(Derivation {
-                    left: production.children.clone(),
-                    right: Some(Box::new(production.clone())),
-                }));
                 updates.insert(update);
             }
         }
@@ -121,17 +114,29 @@ fn hashset(data: &[State]) -> HashSet<State> {
 }
 
 fn main() {
-    let input = "
+    let g = "
     <P> ::= <S>
     <S> ::= <S> \"+\" <M> | <M>
     <M> ::= <M> \"*\" <T> | <T>
     <T> ::= \"1\" | \"2\" | \"3\" | \"4\"
     ";
-
-    let grammar = Grammar::from_str(input).unwrap();
-
     // scanner
     let input = String::from("2+3*4");
+
+    // let g = "
+    // <Sum>     ::= <Sum> \"+\" <Product> | <Sum> \"-\" <Product>
+    // <Sum>     ::= <Product>
+    // <Product> ::= <Product> \"*\" <Factor> | <Product> \"/\" <Factor>
+    // <Product> ::= <Factor>
+    // <Factor>  ::= \"(\" <Sum> \")\"
+    // <Factor>  ::= <Number>";
+    // <Number>  ::= <Number> <Number> | <Number>
+    // <Number>   ::= \"1\" | \"2\" | \"3\" | \"4\" | \"5\" | \"6\" | \"7\" | \"8\" | \"9\" |
+    // ";
+    // scanner
+    // let input = String::from("1+(2*3-4)");
+
+    let grammar = Grammar::from_str(g).unwrap();
 
     let mut states: Vec<HashSet<State>> = vec![HashSet::new(); input.len() + 1];
     let mut productions: Vec<State> = vec![];
@@ -179,10 +184,38 @@ fn main() {
         }
     }
 
-    for (_, state) in states.iter().enumerate() {
-        for (_, production) in state.iter().enumerate() {
-            println!("{:#?}", production.children);
+    let mut curr: Option<State> = None;
+    let mut parse: Vec<State> = vec![];
+
+    if let Some(state) = states.pop() {
+        for production in state {
+            if let None = earley_next_element(&production) {
+                if production.origin == 0 {
+                    curr = Some(production.clone());
+                    parse.push(production.clone());
+                    break;
+                }
+            }
         }
+    }
+
+    'outer: for state in states.iter().rev() {
+        for production in state {
+            if let None = earley_next_element(production) {
+                if let &Some(ref c) = &curr {
+                    if let Some(term) = c.terms.iter().nth(c.dot - 1) {
+                        if *term == production.lhs {
+                            parse.push(production.clone());
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for p in parse {
+        println!("\n{:?}\n\n", p);
     }
 
     // for (i, state) in states.iter().enumerate() {
@@ -200,4 +233,26 @@ fn main() {
     //         );
     //     }
     // }
+
+    // for (_, state) in states.iter().enumerate() {
+    //     for (_, production) in state.iter().enumerate() {
+    //         println!("{:#?}", production.children);
+    //     }
+    // }
+
+    for (i, state) in states.iter().enumerate() {
+        println!("\n---S({})\n", i);
+        for (_, production) in state.iter().enumerate() {
+            let finished: String;
+            if let None = earley_next_element(production) {
+                finished = String::from("(complete)");
+            } else {
+                finished = String::from("");
+            }
+            println!(
+                "{} | {} -> {:?} - dot:{} {}",
+                production.origin, production.lhs, production.terms, production.dot, finished
+            );
+        }
+    }
 }
