@@ -7,8 +7,6 @@ use std::iter::FromIterator;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct State {
-    token: Option<String>,
-    children: Option<Box<Vec<State>>>,
     origin: usize,
     lhs: Term,
     terms: Vec<Term>,
@@ -16,15 +14,12 @@ struct State {
 }
 
 fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<State> {
-    let mut productions_first: HashSet<State> = HashSet::new();
-    let mut productions_last: HashSet<State> = HashSet::new();
+    let mut productions: HashSet<State> = HashSet::new();
 
     for prod in grammar.productions_iter() {
         if prod.lhs == *term {
             for expr in prod.rhs_iter() {
-                productions_first.insert(State {
-                    token: None,
-                    children: None,
+                productions.insert(State {
                     origin: k,
                     lhs: prod.lhs.clone(),
                     terms: expr.terms_iter().cloned().collect::<Vec<_>>(),
@@ -34,23 +29,7 @@ fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<State> 
         }
     }
 
-    for production in &productions_first {
-        for t in &production.terms {
-            if let Term::Nonterminal(_) = *t {
-                if t != term {
-                    productions_last = earley_predictor(&t, k, &grammar)
-                        .union(&productions_last)
-                        .cloned()
-                        .collect();
-                }
-            }
-        }
-    }
-
-    productions_first
-        .union(&productions_last)
-        .cloned()
-        .collect()
+    productions
 }
 
 fn earley_scanner(
@@ -87,8 +66,8 @@ fn earley_scanner(
 fn earley_completer(productions: &HashSet<State>, finished: &State) -> HashSet<State> {
     let mut updates: HashSet<State> = HashSet::new();
     for production in productions {
-        if let Some(term) = earley_next_element(*production) {
-            if finished.lhs == term {
+        if let Some(term) = earley_next_element(production) {
+            if finished.lhs == *term {
                 let mut update = production.clone();
                 update.dot += 1;
                 updates.insert(update);
@@ -104,8 +83,6 @@ fn earlt_init(grammar: &Grammar) -> Option<HashSet<State>> {
         let mut productions: HashSet<State> = HashSet::new();
         for expr in prod.rhs_iter() {
             productions.insert(State {
-                token: None,
-                children: None,
                 origin: 0,
                 lhs: prod.lhs.clone(),
                 terms: expr.terms_iter().cloned().collect::<Vec<_>>(),
@@ -119,8 +96,8 @@ fn earlt_init(grammar: &Grammar) -> Option<HashSet<State>> {
     return None;
 }
 
-fn earley_next_element(production: State) -> Option<Term> {
-    production.terms.iter().nth(production.dot).clone()
+fn earley_next_element(production: &State) -> Option<&Term> {
+    production.terms.iter().nth(production.dot)
 }
 
 fn hashset(data: &[State]) -> HashSet<State> {
@@ -164,8 +141,8 @@ fn main() {
                 state.insert(production.clone());
             }
 
-            if let Some(term) = earley_next_element(production) {
-                match term {
+            if let Some(term) = earley_next_element(&production) {
+                match *term {
                     Term::Nonterminal(_) => {
                         let predicted = earley_predictor(&term, k, &grammar);
                         productions = hashset(&productions).union(&predicted).cloned().collect();
@@ -180,7 +157,6 @@ fn main() {
             } else {
                 if let Some(state) = states.iter_mut().nth(production.origin) {
                     let completed = earley_completer(&state, &production);
-                    production.children = Some(Box::new(completed.iter().cloned().collect()));
                     productions = hashset(&productions).union(&completed).cloned().collect();
                 }
             }
@@ -191,7 +167,7 @@ fn main() {
         println!("\n---S({})\n", i);
         for (_, production) in state.iter().enumerate() {
             let finished: String;
-            if let None = earley_next_element(*production) {
+            if let None = earley_next_element(production) {
                 finished = String::from("(complete)");
             } else {
                 finished = String::from("");
@@ -202,32 +178,4 @@ fn main() {
             );
         }
     }
-
-    // let start;
-    // if let Some(prod) = grammar.productions_iter().next() {
-    //     start = prod;
-    // } else {
-    //     return;
-    // }
-
-    // let finished_root;
-    // if let Some(state) = states.last() {
-    //     for production in state {
-    //         if let None = earley_next_element(&production) {
-    //             if start.lhs == production.lhs {
-    //                 finished_root = production.clone();
-
-    //                 println!(
-    //                     "\n\n{} | {} -> {:?} - dot:{}",
-    //                     finished_root.origin,
-    //                     finished_root.lhs,
-    //                     finished_root.terms,
-    //                     finished_root.dot
-    //                 );
-
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
 }
