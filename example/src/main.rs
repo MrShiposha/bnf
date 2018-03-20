@@ -6,11 +6,17 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Derivation {
+    left: Option<Box<Derivation>>,
+    right: Option<Box<State>>,
+}
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct State {
     origin: usize,
     lhs: Term,
     terms: Vec<Term>,
     dot: usize,
+    children: Option<Box<Derivation>>,
 }
 
 fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<State> {
@@ -24,6 +30,7 @@ fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<State> 
                     lhs: prod.lhs.clone(),
                     terms: expr.terms_iter().cloned().collect::<Vec<_>>(),
                     dot: 0,
+                    children: None,
                 });
             }
         }
@@ -49,9 +56,13 @@ fn earley_scanner(
                     if let Term::Terminal(ref s) = *t {
                         if t == term {
                             if pattern == *s {
-                                let mut p = production.clone();
-                                p.dot += 1;
-                                matches.insert(p);
+                                let mut update = production.clone();
+                                update.dot += 1;
+                                update.children = Some(Box::new(Derivation {
+                                    left: production.children.clone(),
+                                    right: Some(Box::new(production.clone())),
+                                }));
+                                matches.insert(update);
                             }
                         }
                     }
@@ -70,6 +81,10 @@ fn earley_completer(productions: &HashSet<State>, finished: &State) -> HashSet<S
             if finished.lhs == *term {
                 let mut update = production.clone();
                 update.dot += 1;
+                update.children = Some(Box::new(Derivation {
+                    left: production.children.clone(),
+                    right: Some(Box::new(production.clone())),
+                }));
                 updates.insert(update);
             }
         }
@@ -87,6 +102,7 @@ fn earlt_init(grammar: &Grammar) -> Option<HashSet<State>> {
                 lhs: prod.lhs.clone(),
                 terms: expr.terms_iter().cloned().collect::<Vec<_>>(),
                 dot: 0,
+                children: None,
             });
         }
 
@@ -163,19 +179,25 @@ fn main() {
         }
     }
 
-    for (i, state) in states.iter().enumerate() {
-        println!("\n---S({})\n", i);
+    for (_, state) in states.iter().enumerate() {
         for (_, production) in state.iter().enumerate() {
-            let finished: String;
-            if let None = earley_next_element(production) {
-                finished = String::from("(complete)");
-            } else {
-                finished = String::from("");
-            }
-            println!(
-                "{} | {} -> {:?} - dot:{} {}",
-                production.origin, production.lhs, production.terms, production.dot, finished
-            );
+            println!("{:#?}", production.children);
         }
     }
+
+    // for (i, state) in states.iter().enumerate() {
+    //     println!("\n---S({})\n", i);
+    //     for (_, production) in state.iter().enumerate() {
+    //         let finished: String;
+    //         if let None = earley_next_element(production) {
+    //             finished = String::from("(complete)");
+    //         } else {
+    //             finished = String::from("");
+    //         }
+    //         println!(
+    //             "{} | {} -> {:?} - dot:{} {}",
+    //             production.origin, production.lhs, production.terms, production.dot, finished
+    //         );
+    //     }
+    // }
 }
