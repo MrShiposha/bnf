@@ -257,7 +257,6 @@ fn main() {
     //****************
 
     let mut terms: Vec<Term> = vec![];
-    let mut parent: Option<State> = None;
 
     let mut completed_states: Vec<Vec<State>> = vec![];
 
@@ -275,8 +274,8 @@ fn main() {
     if let Some(state) = completed_states.iter().nth(states.len() - 1) {
         for production in state {
             if let Some(0) = production.origin {
+                println!("\n| {} ::= {:?} origin: {} |\n", production.clone().lhs.unwrap(), production.terms, production.origin.unwrap());
                 terms = production.terms.clone();
-                parent = Some(production.clone());
                 break;
             }
         }
@@ -284,17 +283,22 @@ fn main() {
         return;
     }
 
-    recurse(&completed_states, terms, parent);
+    let mut record: HashSet<State> = HashSet::new();
 
-    fn recurse(states: &Vec<Vec<State>>, mut terms: Vec<Term>, parent: Option<State>) {
+    recurse(&completed_states, terms, &mut record);
+
+    fn recurse(states: &Vec<Vec<State>>, mut terms: Vec<Term>, record: &mut HashSet<State>) {
         let mut parse: Vec<State> = vec![];
 
-        fn do_work(states: &Vec<Vec<State>>, rule: &Term, dot: usize) -> Option<State> {
+        fn do_work(states: &Vec<Vec<State>>, rule: &Term, dot: usize, record: &mut HashSet<State>) -> Option<State> {
             if let Some(state) = states.iter().nth(dot) {
-                for production in state {
+                for production in state.iter() {
                     if let Some(ref prod) = production.lhs {
                         if prod == rule {
-                            return Some(production.clone());
+                            if !record.contains(production) {
+                                // record.insert(production.clone());
+                                return Some(production.clone());
+                            }
                         }
                     }
                 }
@@ -304,16 +308,37 @@ fn main() {
         }
 
         let mut dot = states.len() - 1;
+
+
+        if let Some(&Term::Nonterminal(_)) = terms.iter().nth(terms.len() - 1) {
+            if let Some(term) = terms.pop() {
+                'outer: for state in states.iter().rev() {
+                    for production in state.iter() {
+                        if let Some(ref prod) = production.lhs {
+                            if *prod == term {
+                                if !record.contains(production) {
+                                    if let Some(d) = production.dot {
+                                        dot = d;
+                                        record.insert(production.clone());
+                                        parse.push(production.clone());
+                                        break 'outer;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         while let Some(term) = terms.pop() {
             match term {
                 Term::Nonterminal(_) => {
-                    if let Some(mut s) = do_work(&states, &term, dot) {
+                    if let Some(mut s) = do_work(&states, &term, dot, record) {
                         if let Some(d) = s.dot {
                             dot = d;
                         }
                         parse.push(s.clone());
-                    } else {
-                        break;
                     }
                 }
                 Term::Terminal(_) => {
@@ -327,29 +352,20 @@ fn main() {
             }
         }
 
-        if let Some(prod) = parent {
-            if let Some(lhs) = prod.lhs {
-                println!("\n{} ::= {:?}", lhs, prod.terms);
-            }
-        }
-
         for p in parse.iter().rev() {
             if let &Some(ref lhs) = &p.lhs {
-                if let &Some(ref origin) = &p.origin {
-                    println!("  | {} ::= {:?} (origin: {})", *lhs, p.terms, origin);
-                }
+                print!("| {} ::= {:?} origin: {} |", *lhs, p.terms, p.origin.unwrap());
             } else {
-                println!("  | {:?}", p.terms);
+                print!("| {:?} |", p.terms);
             }
         }
 
         println!("\n");
-
-        // for p in parse {
-        //     if let Some(_) = p.lhs {
-        //         recurse(states, p.terms.clone(), Some(p));
-        //     }
-        // }
+        for mut p in parse {
+            if let Some(_) = p.lhs {
+                recurse(states, p.terms, record);
+            }
+        }
     }
 
     //****************
@@ -367,7 +383,7 @@ fn main() {
     //         }
     //         println!(
     //             "{} | {} -> {:?} - dot:{} {}",
-    //             production.origin, production.lhs, production.terms, production.dot, finished
+    //             production.origin.unwrap(), production.clone().lhs.unwrap(), production.terms, production.dot.unwrap(), finished
     //         );
     //     }
     // }
