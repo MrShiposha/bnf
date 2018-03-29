@@ -13,6 +13,13 @@ struct State {
     dot: Option<usize>,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Node {
+    term: Term,
+    leaves: Vec<Node>,
+}
+
+
 fn earley_predictor(term: &Term, k: usize, grammar: &Grammar) -> HashSet<State> {
     let mut productions: HashSet<State> = HashSet::new();
 
@@ -192,70 +199,6 @@ fn main() {
 
     //****************
 
-    // println!("input: {:?}", tokens);
-
-    //****************
-
-    //****************
-
-    // let mut curr: Option<State> = None;
-    // let mut parse: Vec<State> = vec![];
-
-    // if let Some(state) = states.iter().nth(states.len() - 1) {
-    //     for production in state {
-    //         if let None = earley_next_element(&production) {
-    //             if let Some(0) = production.origin {
-    //                 curr = Some(production.clone());
-    //                 // parse.push(production.clone());
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-
-    // let mut terms: Vec<Term> = vec![];
-    // if let Some(c) = curr {
-    //     terms = c.terms;
-    // }
-
-    // let mut c: Option<Term> = terms.pop();
-
-    // for state in states.iter().rev() {
-    //     for production in state {
-    //         let cl = c.clone();
-    //         if let Some(term) = cl {
-    //             match term {
-    //                 Term::Nonterminal(_) => {
-    //                     if let None = earley_next_element(production) {
-    // if let Some(ref prod) = production.lhs {
-    //     if *prod == term {
-    //         parse.push(production.clone());
-    //         c = terms.pop();
-    //     }
-    // }
-    //                     }
-    //                 }
-    //                 Term::Terminal(_) => {
-    //                     parse.push(
-    //                         State {
-    //                             origin: None,
-    //                             lhs: None,
-    //                             terms: vec![term.clone()],
-    //                             dot: None,
-    //                         }
-    //                     );
-
-    //                     c = terms.pop();
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    //****************
-
-    //****************
-
     let mut terms: Vec<Term> = vec![];
 
     let mut completed_states: Vec<Vec<State>> = vec![];
@@ -271,10 +214,12 @@ fn main() {
         completed_states.push(completes.clone());
     }
 
+    let mut root: Option<Term> = None;
     if let Some(state) = completed_states.iter().nth(states.len() - 1) {
         for production in state {
             if let Some(0) = production.origin {
-                println!("\n| {} ::= {:?} origin: {} |\n", production.clone().lhs.unwrap(), production.terms, production.origin.unwrap());
+                root = production.clone().lhs;
+                // println!("\n| {} ::= {:?} origin: {} |\n", production.clone().lhs.unwrap(), production.terms, production.origin.unwrap());
                 terms = production.terms.clone();
                 break;
             }
@@ -285,9 +230,14 @@ fn main() {
 
     let mut record: HashSet<State> = HashSet::new();
 
-    recurse(&completed_states, terms, &mut record);
+    let forest = Node {
+        term: root.unwrap(),
+        leaves: recurse(&completed_states, terms, &mut record)
+    };
 
-    fn recurse(states: &Vec<Vec<State>>, mut terms: Vec<Term>, record: &mut HashSet<State>) {
+    println!("{:#?}", forest);
+
+    fn recurse(states: &Vec<Vec<State>>, mut terms: Vec<Term>, record: &mut HashSet<State>) -> Vec<Node> {
         let mut parse: Vec<State> = vec![];
 
         fn do_work(states: &Vec<Vec<State>>, rule: &Term, dot: usize, record: &mut HashSet<State>) -> Option<State> {
@@ -296,7 +246,6 @@ fn main() {
                     if let Some(ref prod) = production.lhs {
                         if prod == rule {
                             if !record.contains(production) {
-                                // record.insert(production.clone());
                                 return Some(production.clone());
                             }
                         }
@@ -352,21 +301,35 @@ fn main() {
             }
         }
 
-        for p in parse.iter().rev() {
-            if let &Some(ref lhs) = &p.lhs {
-                print!("| {} ::= {:?} origin: {} |", *lhs, p.terms, p.origin.unwrap());
+        // for p in parse.iter().rev() {
+        //     if let &Some(ref lhs) = &p.lhs {
+        //         print!("|__ {} __|", *lhs);
+        //     } else {
+        //         print!("|__ {:?} __|", p.terms);
+        //     }
+        // }
+
+        let mut ret: Vec<Node> = vec![];
+        println!("\n");
+        for mut p in parse.iter().rev() {
+            if let Some(_) = p.lhs {
+                ret.push(Node {
+                    term: p.clone().lhs.unwrap(),
+                    leaves: recurse(states, p.terms.clone(), record)
+                });
             } else {
-                print!("| {:?} |", p.terms);
+                ret.push(
+                    Node{
+                        term: p.terms.iter().nth(0).unwrap().clone(),
+                        leaves: vec![]
+                    }
+                );
             }
         }
 
-        println!("\n");
-        for mut p in parse {
-            if let Some(_) = p.lhs {
-                recurse(states, p.terms, record);
-            }
-        }
+        ret
     }
+
 
     //****************
 
